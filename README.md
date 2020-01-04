@@ -1,6 +1,6 @@
 # windows_device_cycle #
 
-This is a set of PowerShell scripts for disabling and re-enabling (or, optionally, uninstalling and re-detecting) the USB controller that a given USB device is plugged in to.
+This is a set of PowerShell scripts for disabling and re-enabling (or, optionally, uninstalling and re-detecting) Windows devices, in particular the USB controller that a given USB device is plugged in to.
 
 Note that this will evidently affect anything else plugged in to ports on the same USB controller, so if you use the uninstall option, it may be useful to spread out your USB devices across ports on different USB controllers in your system to reduce re-installation time, if your system has controllers to spare.   
 
@@ -8,11 +8,11 @@ Note that this will evidently affect anything else plugged in to ports on the sa
 
 To use it, I create shortcuts in my start menu pointing to my checkout of the script and passing the name of the USB device shown in Device Manager and any options:
 
-e.g. "HID-compliant mouse", enable and disable interface
+e.g. "HID-compliant mouse", enable and disable USB controller
 
     %windir%\System32\WindowsPowerShell\v1.0\powershell.exe -file "%USERPROFILE%\Documents\windows_device_cycle\cycle_usb.ps1" -friendlyName "HID-compliant mouse"
 
-e.g. "HID Keyboard Device", uninstall and re-install interface
+e.g. "HID Keyboard Device", uninstall and re-install USB controller
 
     %windir%\System32\WindowsPowerShell\v1.0\powershell.exe -file "%USERPROFILE%\Documents\windows_device_cycle\cycle_usb.ps1" -friendlyName "HID Keyboard Device" -uninstall
 

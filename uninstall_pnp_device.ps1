@@ -187,7 +187,6 @@ function ReadMultiString([byte[]]$buffer) {
 function GetDeviceProperty([IntPtr]$devs, [Win32.SP_DEVINFO_DATA]$devInfo, [Win32.SetupDiGetDeviceRegistryPropertyEnum]$property, $isText=$true) {
 		[CmdletBinding()]
 
-        #Will contain an enum depending on the type of the registry Property, not used but required for call
         $propType = 0
         #Buffer is initially null and buffer size 0 so that we can get the required Buffer size first
         [byte[]]$propBuffer = $null
@@ -247,9 +246,7 @@ function uninstall-pnpdevice($deviceID) {
     while([Win32.SetupApi]::SetupDiEnumDeviceInfo($devs, $devCount, [ref]$devInfo)){
 	
 		$curDeviceID = (GetDeviceProperty $devs $devInfo ([Win32.SetupDiGetDeviceRegistryPropertyEnum]::SPDRP_HARDWAREID))
-		#if ($curDeviceID -ne $null -and $curDeviceID.StartsWith("PCI\VEN_8086&DEV_1C26")) {
-		#	echo $curDeviceID
-		#}
+
 		if ($deviceID.StartsWith("$curDeviceID\")) {
 	
 			echo "--> Found Device $devCount"

@@ -184,7 +184,7 @@ function ReadMultiString([byte[]]$buffer) {
 	$array
 }
 
-function GetDeviceProperty([IntPtr]$devs, [Win32.SP_DEVINFO_DATA]$devInfo, [Win32.SetupDiGetDeviceRegistryPropertyEnum]$property, $isText=$true) {
+function GetDeviceProperty([IntPtr]$devs, [Win32.SP_DEVINFO_DATA]$devInfo, [Win32.SetupDiGetDeviceRegistryPropertyEnum]$property) {
 		[CmdletBinding()]
 
         $propType = 0

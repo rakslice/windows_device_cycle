@@ -197,8 +197,8 @@ function GetDeviceProperty([IntPtr]$devs, [Win32.SP_DEVINFO_DATA]$devInfo, [Win3
         $propBufferSize = 0
         # Get Buffer size
         $firstRet = [Win32.SetupApi]::SetupDiGetDeviceRegistryProperty($devs, [ref]$devInfo, $property, [ref]$propType, $propBuffer, 0, [ref]$propBufferSize)
-        
-        #echo "First SetupDiGetDeviceRegistryProperty call return value is " $firstRet
+
+        #write-host "First SetupDiGetDeviceRegistryProperty call return value is " $firstRet
         # Initialize Buffer with right size
         [byte[]]$propBuffer = New-Object byte[] $propBufferSize
         
@@ -207,7 +207,7 @@ function GetDeviceProperty([IntPtr]$devs, [Win32.SP_DEVINFO_DATA]$devInfo, [Win3
         $secondRet = [Win32.SetupApi]::SetupDiGetDeviceRegistryProperty($devs, [ref]$devInfo, $property, [ref]$propType, $propBuffer, $propBufferSize, [ref]$propBufferSize)
             
         if ($secondRet -ne $true -and $propType -ne 0) {
-            echo "The second SetupDiGetDeviceRegistryProperty call return value is" $secondRet
+            write-host "The second SetupDiGetDeviceRegistryProperty call return value is" $secondRet
             write-error "second SetupDiGetDeviceRegistryProperty call failed"
             pause
             exit
@@ -224,7 +224,7 @@ function GetDeviceProperty([IntPtr]$devs, [Win32.SP_DEVINFO_DATA]$devInfo, [Win3
         } elseif ($propType -eq 0) {
             $out = $null
         } else {
-            echo "Device property $property has unknown property type $propType"
+            write-host "Device property $property has unknown property type $propType"
             pause
             exit
         }
@@ -235,57 +235,69 @@ function GetDeviceProperty([IntPtr]$devs, [Win32.SP_DEVINFO_DATA]$devInfo, [Win3
 
 
 function uninstall-pnpdevice($deviceIDToLookFor) {
+    $deviceFound = $false
+
     $setupClass = [Guid]::Empty
     # Get all devices
     [IntPtr]$devs = [Win32.SetupApi]::SetupDiGetClassDevs([ref]$setupClass, [IntPtr]::Zero, [IntPtr]::Zero, [Win32.DiGetClassFlags]::DIGCF_ALLCLASSES)
+	
+	try {
     
-    # Initialise Struct to hold device info Data
-    $devInfo = new-object Win32.SP_DEVINFO_DATA
-    $devInfo.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($devInfo)
-    
-    # Enumerate Devices
-    
-    For ($devCount = 0; [Win32.SetupApi]::SetupDiEnumDeviceInfo($devs, $devCount, [ref]$devInfo); $devCount++) {
-    
-        $curDeviceID = (GetDeviceProperty $devs $devInfo ([Win32.SetupDiGetDeviceRegistryPropertyEnum]::SPDRP_HARDWAREID))
+        # Initialise Struct to hold device info Data
+        $devInfo = new-object Win32.SP_DEVINFO_DATA
+        $devInfo.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($devInfo)
+               
+        # Enumerate Devices
+        
+        For ($devCount = 0; [Win32.SetupApi]::SetupDiEnumDeviceInfo($devs, $devCount, [ref]$devInfo); $devCount++) {
+        
+            $curDeviceID = (GetDeviceProperty $devs $devInfo ([Win32.SetupDiGetDeviceRegistryPropertyEnum]::SPDRP_HARDWAREID))
 
-        if ($deviceIDToLookFor -eq $curDeviceID -or $deviceIDToLookFor.StartsWith("$curDeviceID\")) { # That is, if the device ID we're looking for is the currently enumerating device ID optionally followed by a backslash and some stuff
-    
-            echo "--> Found Device $devCount"
-            
-            echo "Friendly name: "
-            $friendly = (GetDeviceProperty $devs $devInfo ([Win32.SetupDiGetDeviceRegistryPropertyEnum]::SPDRP_FRIENDLYNAME))
-            if ($friendly -eq $null) {
-                $friendly = (GetDeviceProperty $devs $devInfo ([Win32.SetupDiGetDeviceRegistryPropertyEnum]::SPDRP_DEVICEDESC))
-            }
-            echo $friendly
-            
-            write-host -NoNewline "Install state: "
-            $installState = GetDeviceProperty $devs $devInfo ([Win32.SetupDiGetDeviceRegistryPropertyEnum]::SPDRP_INSTALL_STATE)
-            echo $installState
-            
-            if ($installState -eq 0) {
-                echo "It is consistent with installed state."
+            if ($deviceIDToLookFor -eq $curDeviceID -or $deviceIDToLookFor.StartsWith("$curDeviceID\")) { # That is, if the device ID we're looking for is the currently enumerating device ID optionally followed by a backslash and some stuff
+        
+				write-host "Device ID: $curDeviceID"
+                $deviceFound = $true
                 
-                
-                echo "Uninstalling the device."
-                $ret = [Win32.SetupApi]::DiUninstallDevice(0, $devs, [ref]$devInfo, 0, [ref]$null)
-                #$ret = [Win32.SetupApi]::SetupDiRemoveDevice($devs, [ref]$devInfo)
-                if (-not $ret) {
-                    echo "Error removing device"
-                    pause
-                    exit
+                write-host "Friendly name: "
+                $friendly = (GetDeviceProperty $devs $devInfo ([Win32.SetupDiGetDeviceRegistryPropertyEnum]::SPDRP_FRIENDLYNAME))
+                if ($friendly -eq $null) {
+                    $friendly = (GetDeviceProperty $devs $devInfo ([Win32.SetupDiGetDeviceRegistryPropertyEnum]::SPDRP_DEVICEDESC))
                 }
+                write-host $friendly
+                
+                write-host -NoNewline "Install state: "
+                $installState = GetDeviceProperty $devs $devInfo ([Win32.SetupDiGetDeviceRegistryPropertyEnum]::SPDRP_INSTALL_STATE)
+                write-host $installState
+                
+                if ($installState -eq 0) {
+                    write-host "It is consistent with installed state."
+                    
+                    
+                    write-host "Uninstalling the device."
+                    $ret = [Win32.SetupApi]::DiUninstallDevice(0, $devs, [ref]$devInfo, 0, [ref]$null)
+                    #$ret = [Win32.SetupApi]::SetupDiRemoveDevice($devs, [ref]$devInfo)
+                    if (-not $ret) {
+                        write-host "Error removing device"
+                        pause
+                        exit
+                    }
+                }
+                break
             }
-            break
-        }
 
-    }
-    
-    if (-not [Win32.SetupApi]::SetupDiDestroyDeviceInfoList($devs)) {
-        Write-Error "Cleanup of device info list failed"
-    }
-    
+        }
+		
+	} finally {
+
+        if (-not [Win32.SetupApi]::SetupDiDestroyDeviceInfoList($devs)) {
+            Write-Error "Cleanup of device info list failed"
+        }
+	
+	}
+	
+	#write-host "device count $devCount"
+	
+	$deviceFound
 }
 
 
@@ -298,34 +310,40 @@ function rescan-devices {
     $status = [Win32.CM]::CM_Locate_DevNodeA([ref]$devInst, $null, 0) # CM_LOCATE_DEVNODE_NORMAL
     
     if ($status -ne 0) { # CR_SUCCESS
-        echo "Locate root node failed: $status"
+        write-host "Locate root node failed: $status"
         pause
         return
     }
     
     $status = [Win32.CM]::CM_Reenumerate_DevNode($devInst, 0);
     if ($status -ne 0) { # CR_SUCCESS
-        echo "Launching scan for hardware failed: $status"
+        write-host "Launching scan for hardware failed: $status"
         pause
         return
     }
     
-    echo "Scan for hardware started successfully"
+    write-host "Scan for hardware started successfully"
 }
 
 
-echo "Uninstalling device matching $deviceID"
+write-host "Uninstalling device matching $deviceID"
 
-uninstall-pnpdevice $deviceID
+$found = uninstall-pnpdevice $deviceID
 
-echo "Waiting $sleepTime s"
+if (-not $found) {
+	Write-Error "Couldn't find a device matching $deviceID"
+	start-sleep 5
+	exit
+}
+
+write-host "Waiting $sleepTime s"
 start-sleep $sleepTime
 
-echo "Re-scanning for hardware"
+write-host "Re-scanning for hardware"
 
 rescan-devices
 
-echo "We're done"
+write-host "We're done"
 
 # Stick around a bit so there's a chance to see the messages before the window disappears
 start-sleep 5

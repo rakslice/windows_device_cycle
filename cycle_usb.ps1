@@ -15,7 +15,7 @@ function ensureSingle($arr) {
 	if ($arr.length -ne 1) {
 		if ($arr.length -gt 1) {
 			write-error "multiple matches:"
-			#echo $arr
+			#write-host $arr
 		} else {
 			write-error "no matches"
 		}
@@ -24,11 +24,11 @@ function ensureSingle($arr) {
 	$arr[0]
 }
 
-echo "Searching for a device with name $friendlyName"
+write-host "Searching for a device with name $friendlyName"
 
 $usbDevice = ensureSingle(@(get-pnpdevice -presentonly -friendlyname $friendlyName))
 
-echo $usbDevice.name "is connected to"
+write-host $usbDevice.name "is connected to"
 
 $usbDeviceWMI = ensureSingle(@(	get-wmiobject Win32_PnpEntity | 
 	where-object -property PNPDeviceID -eq $usbDevice.instanceid | 
@@ -41,11 +41,11 @@ $controllerDevice = ensureSingle(@(get-wmiobject win32_usbcontrollerdevice |
 $controller = ensureSingle(@(SelectWMI($controllerDevice.antecedent)))
 $controllerPNP = $controller.PNPDeviceID
 
-echo $controller.Name
-echo $controllerPNP
+write-host $controller.Name
+write-host $controllerPNP
 
 ## show all the properties of the controller
-#echo $controller
+#write-host $controller
 
 if ($uninstall) {
 	$adminScript="uninstall_pnp_device.ps1"
@@ -53,7 +53,7 @@ if ($uninstall) {
 	$adminScript="cycle_pnp_device.ps1"
 }
 
-echo "Launching an admin script to cycle the device"
+write-host "Launching an admin script to cycle the device"
 
 start-sleep 2
 

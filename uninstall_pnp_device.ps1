@@ -241,13 +241,13 @@ function uninstall-pnpdevice($deviceIDToLookFor) {
     # Get only the device we want
     [IntPtr]$devs = [Win32.SetupApi]::SetupDiGetClassDevs([ref]$setupClass, $deviceIDToLookFor, [IntPtr]::Zero, [Win32.DiGetClassFlags]::DIGCF_DEVICEINTERFACE -bor [Win32.DiGetClassFlags]::DIGCF_ALLCLASSES -bor [Win32.DiGetClassFlags]::DIGCF_PRESENT)
 
-	if ($devs -eq -1) { # INVALID_HANDLE_VALUE
-		write-host "Error finding device: SetupDiGetClassDevs returned INVALID_HANDLE_VALUE"
-		start-sleep 5
-		exit
-	}
-	
-	try {
+    if ($devs -eq -1) { # INVALID_HANDLE_VALUE
+        write-host "Error finding device: SetupDiGetClassDevs returned INVALID_HANDLE_VALUE"
+        start-sleep 5
+        exit
+    }
+    
+    try {
     
         # Initialise Struct to hold device info Data
         $devInfo = new-object Win32.SP_DEVINFO_DATA
@@ -261,7 +261,7 @@ function uninstall-pnpdevice($deviceIDToLookFor) {
 
             if ($deviceIDToLookFor -eq $curDeviceID -or $deviceIDToLookFor.StartsWith("$curDeviceID\")) { # That is, if the device ID we're looking for is the currently enumerating device ID optionally followed by a backslash and some stuff
         
-				write-host "Device ID: $curDeviceID"
+                write-host "Device ID: $curDeviceID"
                 $deviceFound = $true
                 
                 write-host "Friendly name: "
@@ -292,18 +292,18 @@ function uninstall-pnpdevice($deviceIDToLookFor) {
             }
 
         }
-		
-	} finally {
+        
+    } finally {
 
         if (-not [Win32.SetupApi]::SetupDiDestroyDeviceInfoList($devs)) {
             Write-Error "Cleanup of device info list failed"
         }
-	
-	}
-	
-	#write-host "device count $devCount"
-	
-	$deviceFound
+    
+    }
+    
+    #write-host "device count $devCount"
+    
+    $deviceFound
 }
 
 
@@ -337,9 +337,9 @@ write-host "Uninstalling device matching $deviceID"
 $found = uninstall-pnpdevice $deviceID
 
 if (-not $found) {
-	Write-Error "Couldn't find a device matching $deviceID"
-	start-sleep 5
-	exit
+    Write-Error "Couldn't find a device matching $deviceID"
+    start-sleep 5
+    exit
 }
 
 write-host "Waiting $sleepTime s"

@@ -47,6 +47,22 @@ write-host $controllerPNP
 ## show all the properties of the controller
 #write-host $controller
 
+if (-not $uninstall) {
+
+    $devNodeStatus = get-pnpdeviceproperty -instanceid $controllerPNP -keyname DEVPKEY_Device_DevNodeStatus | select -expand data
+
+    $DN_DISABLEABLE = 8192
+
+    if ($devNodeStatus -band $DN_DISABLEABLE) {
+        $uninstall = $false
+    } else {
+        $uninstall = $true
+    }
+    
+    write-host "Needs uninstall: $uninstall"
+
+}
+
 if ($uninstall) {
     $adminScript="uninstall_pnp_device.ps1"
 } else {

@@ -28,7 +28,7 @@ namespace Win32
         // 2nd form uses an Enumerator only, with ClassGUID = IntPtr.Zero
         [DllImport("setupapi.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SetupDiGetClassDevs(
-           IntPtr ClassGuid,
+           ref Guid ClassGuid,
            string Enumerator,
            IntPtr hwndParent,
            int Flags
@@ -238,8 +238,14 @@ function uninstall-pnpdevice($deviceIDToLookFor) {
     $deviceFound = $false
 
     $setupClass = [Guid]::Empty
-    # Get all devices
-    [IntPtr]$devs = [Win32.SetupApi]::SetupDiGetClassDevs([ref]$setupClass, [IntPtr]::Zero, [IntPtr]::Zero, [Win32.DiGetClassFlags]::DIGCF_ALLCLASSES)
+    # Get only the device we want
+    [IntPtr]$devs = [Win32.SetupApi]::SetupDiGetClassDevs([ref]$setupClass, $deviceIDToLookFor, [IntPtr]::Zero, [Win32.DiGetClassFlags]::DIGCF_DEVICEINTERFACE -bor [Win32.DiGetClassFlags]::DIGCF_ALLCLASSES -bor [Win32.DiGetClassFlags]::DIGCF_PRESENT)
+
+	if ($devs -eq -1) { # INVALID_HANDLE_VALUE
+		write-host "Error finding device: SetupDiGetClassDevs returned INVALID_HANDLE_VALUE"
+		start-sleep 5
+		exit
+	}
 	
 	try {
     

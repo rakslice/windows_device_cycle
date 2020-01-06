@@ -24,7 +24,7 @@ namespace Win32
            IntPtr hwndParent,
            int Flags
         );
-    
+
         // 2nd form uses an Enumerator only, with ClassGUID = IntPtr.Zero
         [DllImport("setupapi.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr SetupDiGetClassDevs(
@@ -33,14 +33,14 @@ namespace Win32
            IntPtr hwndParent,
            int Flags
         );
-        
+
         [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool SetupDiEnumDeviceInfo(
             IntPtr DeviceInfoSet,
             uint MemberIndex,
             ref SP_DEVINFO_DATA DeviceInfoData
         );
-    
+
         [DllImport("setupapi.dll", SetLastError = true)]
         public static extern bool SetupDiDestroyDeviceInfoList(
             IntPtr DeviceInfoSet
@@ -63,11 +63,11 @@ namespace Win32
             int DeviceInstanceIdSize,
             out int RequiredSize
         );
- 
-    
+
+
         [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool SetupDiRemoveDevice(IntPtr DeviceInfoSet,ref SP_DEVINFO_DATA DeviceInfoData);
-        
+
         [DllImport("newdev.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool DiUninstallDevice(
             uint hwndParent,
@@ -77,26 +77,26 @@ namespace Win32
             ref bool NeedReboot
         );
     }
-    
+
     public static class CM {
         [DllImport("setupapi.dll", SetLastError = true)]
-        public static extern int CM_Locate_DevNodeA(out IntPtr pdnDevInst, string pDeviceID, int ulFlags);      
-        
+        public static extern int CM_Locate_DevNodeA(out IntPtr pdnDevInst, string pDeviceID, int ulFlags);
+
         //CMAPI CONFIGRET CM_Locate_DevNodeA(
         //  PDEVINST    pdnDevInst,
         //  DEVINSTID_A pDeviceID,
         //  ULONG       ulFlags
         //);
-        
+
         [DllImport("setupapi.dll", SetLastError = true)]
-        public static extern int CM_Reenumerate_DevNode(IntPtr dnDevInst, int ulFlags);     
-        
+        public static extern int CM_Reenumerate_DevNode(IntPtr dnDevInst, int ulFlags);
+
         //CMAPI CONFIGRET CM_Reenumerate_DevNode(
         //  DEVINST dnDevInst,
         //  ULONG   ulFlags
         //);
     }
-    
+
     [StructLayout(LayoutKind.Sequential)]
     public struct SP_DEVINFO_DATA
     {
@@ -162,25 +162,25 @@ Add-Type -TypeDefinition $setupapi
 
 function ReadUnicodeMultiString([byte[]]$buffer) {
     # Convert a byte array with a Unicode flavoured REG_MULTI_SZ (a.k.a. [Microsoft.Win32.RegistryValueKind]::MultiString) to an ArrayList of strings
-    
+
     $index = 0
-    
+
     [System.Collections.ArrayList]$array = new-object System.Collections.ArrayList
-    
+
     for ($i=0; $i -le $buffer.length; $i++) {
         if ($buffer[$i] -eq 0 -and $buffer[$i + 1] -eq 0) {
             $count = $i - $index + 1
             if ($count -eq 1) {
                 break
             }
-            
+
             $curString = [System.Text.Encoding]::Unicode.GetString($buffer, $index, $count)
-            
+
             $array.Add($curString) | out-null
-            
+
             $index = $i + 1
-        }   
-    
+        }
+
     }
     $array
 }
@@ -188,7 +188,7 @@ function ReadUnicodeMultiString([byte[]]$buffer) {
 
 function GetDeviceProperty([IntPtr]$devs, [Win32.SP_DEVINFO_DATA]$devInfo, [Win32.SetupDiGetDeviceRegistryPropertyEnum]$property) {
         [CmdletBinding()]
-        
+
         # Get the given property on the currently enumerating device and convert the data
 
         $propType = 0
@@ -201,18 +201,18 @@ function GetDeviceProperty([IntPtr]$devs, [Win32.SP_DEVINFO_DATA]$devInfo, [Win3
         #write-host "First SetupDiGetDeviceRegistryProperty call return value is " $firstRet
         # Initialize Buffer with right size
         [byte[]]$propBuffer = New-Object byte[] $propBufferSize
-        
+
         # Now we call SetupDiGetDeviceRegistryProperty again to get the actual property bytes
 
         $secondRet = [Win32.SetupApi]::SetupDiGetDeviceRegistryProperty($devs, [ref]$devInfo, $property, [ref]$propType, $propBuffer, $propBufferSize, [ref]$propBufferSize)
-            
+
         if ($secondRet -ne $true -and $propType -ne 0) {
             write-host "The second SetupDiGetDeviceRegistryProperty call return value is" $secondRet
             write-error "second SetupDiGetDeviceRegistryProperty call failed"
             pause
             exit
         }
-        
+
         # Convert the property buffer data appropriately based on the property type
 
         if ($propType -eq [Microsoft.Win32.RegistryValueKind]::MultiString) {
@@ -228,7 +228,7 @@ function GetDeviceProperty([IntPtr]$devs, [Win32.SP_DEVINFO_DATA]$devInfo, [Win3
             pause
             exit
         }
-        
+
         # Return the converted property value
         $out
 }
@@ -246,39 +246,39 @@ function uninstall-pnpdevice($deviceIDToLookFor) {
         start-sleep 5
         exit
     }
-    
+
     try {
-    
+
         # Initialise Struct to hold device info Data
         $devInfo = new-object Win32.SP_DEVINFO_DATA
         $devInfo.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($devInfo)
-               
+
         # Enumerate Devices
-        
+
         For ($devCount = 0; [Win32.SetupApi]::SetupDiEnumDeviceInfo($devs, $devCount, [ref]$devInfo); $devCount++) {
-        
+
             $curDeviceID = (GetDeviceProperty $devs $devInfo ([Win32.SetupDiGetDeviceRegistryPropertyEnum]::SPDRP_HARDWAREID))
 
             if ($deviceIDToLookFor -eq $curDeviceID -or $deviceIDToLookFor.StartsWith("$curDeviceID\")) { # That is, if the device ID we're looking for is the currently enumerating device ID optionally followed by a backslash and some stuff
-        
+
                 write-host "Device ID: $curDeviceID"
                 $deviceFound = $true
-                
+
                 write-host "Friendly name: "
                 $friendly = (GetDeviceProperty $devs $devInfo ([Win32.SetupDiGetDeviceRegistryPropertyEnum]::SPDRP_FRIENDLYNAME))
                 if ($friendly -eq $null) {
                     $friendly = (GetDeviceProperty $devs $devInfo ([Win32.SetupDiGetDeviceRegistryPropertyEnum]::SPDRP_DEVICEDESC))
                 }
                 write-host $friendly
-                
+
                 write-host -NoNewline "Install state: "
                 $installState = GetDeviceProperty $devs $devInfo ([Win32.SetupDiGetDeviceRegistryPropertyEnum]::SPDRP_INSTALL_STATE)
                 write-host $installState
-                
+
                 if ($installState -eq 0) {
                     write-host "It is consistent with installed state."
-                    
-                    
+
+
                     write-host "Uninstalling the device."
                     $ret = [Win32.SetupApi]::DiUninstallDevice(0, $devs, [ref]$devInfo, 0, [ref]$null)
                     #$ret = [Win32.SetupApi]::SetupDiRemoveDevice($devs, [ref]$devInfo)
@@ -292,42 +292,42 @@ function uninstall-pnpdevice($deviceIDToLookFor) {
             }
 
         }
-        
+
     } finally {
 
         if (-not [Win32.SetupApi]::SetupDiDestroyDeviceInfoList($devs)) {
             Write-Error "Cleanup of device info list failed"
         }
-    
+
     }
-    
+
     #write-host "device count $devCount"
-    
+
     $deviceFound
 }
 
 
 function rescan-devices {
     [IntPtr] $devInst = new-object IntPtr
-    
+
     # CM_LOCATE_DEVNODE_NORMAL = 0x00000000
     # CR_SUCCESS = 0x00000000
-    
+
     $status = [Win32.CM]::CM_Locate_DevNodeA([ref]$devInst, $null, 0) # CM_LOCATE_DEVNODE_NORMAL
-    
+
     if ($status -ne 0) { # CR_SUCCESS
         write-host "Locate root node failed: $status"
         pause
         return
     }
-    
+
     $status = [Win32.CM]::CM_Reenumerate_DevNode($devInst, 0);
     if ($status -ne 0) { # CR_SUCCESS
         write-host "Launching scan for hardware failed: $status"
         pause
         return
     }
-    
+
     write-host "Scan for hardware started successfully"
 }
 

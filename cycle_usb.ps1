@@ -1,6 +1,6 @@
 param(
     [String]$friendlyName,
-    [switch]$uninstall=$false   
+    [switch]$uninstall=$false
 )
 
 # A script to cycle the USB controller that a given device is connected to
@@ -30,8 +30,8 @@ $usbDevice = ensureSingle(@(get-pnpdevice -presentonly -friendlyname $friendlyNa
 
 write-host $usbDevice.name "is connected to"
 
-$usbDeviceWMI = ensureSingle(@( get-wmiobject Win32_PnpEntity | 
-    where-object -property PNPDeviceID -eq $usbDevice.instanceid | 
+$usbDeviceWMI = ensureSingle(@( get-wmiobject Win32_PnpEntity |
+    where-object -property PNPDeviceID -eq $usbDevice.instanceid |
     where-object -property Present -eq True
 ))
 
@@ -58,7 +58,7 @@ if (-not $uninstall) {
     } else {
         $uninstall = $true
     }
-    
+
     write-host "Needs uninstall: $uninstall"
 
 }

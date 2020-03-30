@@ -22,4 +22,4 @@ e.g. "HID Keyboard Device", require uninstall and re-install USB controller
 
 Frequently I have a problem where a USB input device such as the keyboard or mouse stops responding. Although the device is still powered on via USB, and is still visible within the Device Manager in Windows 10, button presses or movements from the device aren't getting through.  
 
-When this first happened, I found that if I connected an additional keyboard/mouse to a different controller it was usable, and that disabling and re-enabling the USB controller (or, failing that, uninstalling and re-installing it) caused the affected device to start working again.
+When this first happened, I found that if I connected an additional keyboard/mouse to a different controller it was usable, and that disabling and re-enabling the USB controller the hung device was on (or, failing that, uninstalling and re-installing the controller) caused the affected device to start working again.
